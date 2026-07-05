@@ -1,14 +1,15 @@
-from typing import Union, Dict, List
+import logging
+import xml.etree.ElementTree as ET
+from typing import Dict, List, Union
+import httpx
 from ..utils.query_builders.arixv_query_builder import ArxivAIQueryBuilder
-import httpx, logging, xml.etree.ElementTree as ET
 
 class AsyncArxivParser: 
-
     def __init__(self, 
                  client: httpx.AsyncClient, 
                  logger: logging.Logger,
                  query: Union[str, ArxivAIQueryBuilder], 
-                 max_results: int):
+                 max_results: int = 10):
         self.client = client 
         self.logger = logger
         self.max_results = max_results
@@ -46,8 +47,11 @@ class AsyncArxivParser:
         
         parsed_papers = []
         for entry in entries:
-            title = entry.find('atom:title', ns).text.strip()
-            abstract_url = entry.find('atom:id', ns).text.strip()
+            title_node = entry.find('atom:title', ns)
+            id_node = entry.find('atom:id', ns)
+            
+            title = " ".join(title_node.text.split()) if title_node is not None and title_node.text else "No Title"
+            abstract_url = id_node.text.strip() if id_node is not None and id_node.text else ""
             
             pdf_url = ""
             for link in entry.findall('atom:link', ns):
